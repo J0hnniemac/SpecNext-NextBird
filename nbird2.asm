@@ -34,30 +34,14 @@
 
   org 32768
   START 
-  xxxxxxxxx db 0 ; broke data
-  pipe1Data db 0, 32 , 1 , 2 , 10 ; position 2 bytes, top length, gap, start spriteid
-  pipe2Data db 0, 64 , 2 , 2 , 18 ; position 2 bytes, top length, gap, start spriteid
-  pipe3Data db 0, 96 , 3 , 2 , 26 ; position 2 bytes, top length, gap, start spriteid
- ;
-  pipe4Data db 0, 128 ,4 , 2 , 34 ; position 2 bytes, top length, gap, start spriteid
-  pipe5Data db 0, 160 ,5 , 2 , 42 ; position 2 bytes, top length, gap, start spriteid
- ; pipe5Data db 0, 134 , 7 , 2 , 42 ; position 2 bytes, top length, gap, start spriteid
   
-
-  pipeXPos db 0,0
-  pipeYPos db 0 
-  pipeTopTileCount db 0 
-  pipeSpriteToUse db 0
-  pipeGap db 0
-
   
-  capID db 50 ; starting cap ID sprite
-
   
-  di
 
   call setupScreen
-  
+  call loadGameBackground
+  call drawpavement
+  call showLayer2
   call initPipeSprites
 
   call initEndPipeSprites
@@ -71,6 +55,7 @@
   ;call  initiliseSprites
 ;  ret
   call makeAllSpritesVisible
+
   ;ld hl, capID
   ;ld a, 50
   ld (hl), a
@@ -81,8 +66,8 @@
 
   ld ix, pipe2Data
   call drawPipe
-  ei
-  ret
+  
+ 
   
   ld ix, pipe3Data
   call drawPipe
@@ -92,8 +77,8 @@
 
   ld ix, pipe5Data
   call drawPipe
+ret
 
-ei
 
 ret
 
@@ -107,10 +92,10 @@ drawPipe:
 
   ;seed data
   ld hl, pipeYPos
-  ld (hl), 32 ; pipe y position
-  ld hl, pipeXPos+1
+  ld (hl), 32 ; pipe y position - always starts at 32
+  ld hl, pipeXPos+1 ;
   ld a, (ix+1)
-  ld (hl), a
+  ld (hl), a ; save xpos from databased
 
 
   ld a,(ix+2)
@@ -142,9 +127,8 @@ topPipeLoop:
   ld a, (pipeYPos)
   add a,16
 
-  
-
   ld (pipeYPos), a ; add 16 
+
   ld hl, pipeSpriteToUse
   inc (hl) ; used next sprite
 
@@ -153,6 +137,9 @@ topPipeLoop:
   ld (pipeTopTileCount), a
 
   jp nz, topPipeLoop
+
+
+
 
 
 
@@ -177,12 +164,19 @@ topPipeLoop:
   xor 128
   ;ld a, 137 ; spite visible pattern 0 ??? ;;128 = 0
   out (c), a
-
   ld a, (pipeYPos)
   add a,16
+  ld (pipeYPos), a ; add 16 
+incGap: 
+  ld a, (pipeYPos)
   add a,16
   ld (pipeYPos), a ; add 16 
 
+  ld a, (pipeGap)
+  dec a
+  ld (pipeGap), a
+
+  jp nz, incGap
 
 
 ;; put a cap on it
@@ -207,13 +201,61 @@ topPipeLoop:
   out (c), a
 
 
+  ld a, (pipeYPos)
+
+pipeBottomLoop:
+
+ sub 208
+  jp z , donepipe
+  ;ld hl, pipeSpriteToUse
+  ;inc (hl) ; used next sprite
+
+  ld a, (pipeSpriteToUse)
+ ; ld a, 11
+  
+  push af
+ 
+  ld bc, $303b
+  out (c), a ; 
+  ld bc, $57
+  ld a, (pipeXPos+1) ; xpos >>> 32 on boarder ->>
+  out (c), a
+  ld a, (pipeYPos) ; ypos ? --- 32 upper ->>>
+  out (c), a
+  ld a, 0 ; 7-4 is palette offset, bit 3 is X mirror, bit 2 is Y mirror, bit 1 is rotate flag and bit 0 is X MSB. 
+  ; 8 flip x 4 flipy 2 rotate 1 msb
+  out (c), a
+  pop af
+  xor 128
+  ;ld a, 137 ; spite visible pattern 0 ??? ;;128 = 0
+  out (c), a
+
+  
 
 
 
 
+  ld a, (pipeYPos)
+  add a,16
+  ld (pipeYPos), a ; add 16 
+ 
+  ld hl, pipeSpriteToUse
+  inc (hl) ; used next sprite
+
+  jp pipeBottomLoop
 
 
-  ret
+
+donepipe:
+
+
+
+  ret 
+
+
+  
+
+  
 
 
 setupScreen:
@@ -430,6 +472,260 @@ load_sprite_loopx2:
 
 
 
+drawpavement:
+
+paveno db 15
+pavex db 0
+
+pave1:  
+    
+    ld ix, BottomSprite
+    
+    ;ld iy, topColumns ; x position
+
+    ld de ,16; 16 across
+    push de ; save de
+;    ld  hl,0
+    ld a, (pavex) ; a postion = 0
+    ld h, 48
+    ld l, a ; x position of column y = 0
+ 
+;hl = start of column
+    dec h
+pavec1i:
+    inc h
+    ld a, 1+64+64;
+    ld  bc, $123b
+    out (c),a     ; set bank
+    ld  de,16 ; 16*16 sprite 
+pave1nc:
+    ;
+   ; ld a,0 ; black
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+    
+  
+    dec de; count down
+    ld a,d ; zero check
+    or e ; zero check
+    jp nz, pave1nc ; next col
+    ld a, l ; 
+    sub  16  ;jump down a row
+    ld l, a
+    pop de
+    dec de
+    ld a,d
+    push de
+    or e
+    jp nz, pavec1i
+    pop de
+
+
+
+    ld a,(pavex)
+    add a,16
+    ld (pavex),a
+
+    ld a,(paveno)
+    dec a
+    ld (paveno),a
+
+    jp nz, pave1
+
+
+;ret 
+rowno db 15
+pavelast1:  
+    
+    ld ix, BottomSprite
+    
+    ;ld iy, topColumns ; x position
+
+    ld de ,16; 16 across
+    push de ; save de
+;    ld  hl,0
+    ld a, (pavex) 
+    ld h, 48
+    ld l, a ; x position of column y = 0
+ 
+;hl = start of column
+    dec h
+pavelastc1i:
+    inc h
+    ld a, 1+64+64;
+    ld  bc, $123b
+    out (c),a     ; set bank
+    ld  de,16 ; 16*16 sprite 
+pavelast1nc:
+    ;
+   ; ld a,0 ; black
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+    
+
+
+
+
+
+    dec de; count down
+    ld a,d ; zero check
+    or e ; zero check
+    jp nz, pavelast1nc ; next col
+
+
+
+    ld a, l ; 
+    sub  16
+    ld l, a
+    ld de ,16
+
+    ld a,(rowno)
+    dec a 
+    ld (rowno), a
+    jp nz, pavelast1nc
+
+
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+ 
+  
+
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+   
+  
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+    
+  
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+    
+  
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+   
+  
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+    
+  
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+   
+  
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+    
+  
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+  
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+    
+  
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+    
+  
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+    
+  
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+    
+  
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+    
+  
+
+    ld a, (ix) ; copy pipe pixel
+    inc ix ; work back the way 
+    ld (hl),a ;place the pixel
+    inc hl; next colum
+
+    
+  
+
+
+
+ret 
+
+showLayer2:
+
+  ld  bc, $123b
+    ld  a,2 
+    out (c),a  ; make layer 2 visibile.
+
+  ret   
+
 
 
 
@@ -528,7 +824,42 @@ Pipe:
   db  $E3, $91, $B5, $B9, $D9, $DE, $DE, $B9, $B9, $95, $75, $71, $4C, $50, $6D, $E3;
   db  $E3, $91, $B5, $B9, $D9, $DE, $DE, $B9, $B9, $95, $75, $71, $4C, $50, $6D, $E3;
 
+BottomSprite:
+  db  $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00;
+  db  $DE, $DE, $DE, $DE, $DE, $DE, $DE, $DE, $DE, $DE, $DE, $DE, $DE, $DE, $DE, $DE;
+  db  $99, $99, $99, $99, $99, $99, $99, $99, $75, $75, $75, $75, $75, $75, $99, $99;
+  db  $99, $99, $99, $99, $99, $99, $99, $75, $75, $75, $75, $75, $75, $99, $99, $99;
+  db  $99, $99, $99, $99, $99, $99, $75, $75, $75, $75, $75, $75, $99, $99, $99, $99;
+  db  $99, $99, $99, $99, $99, $75, $75, $75, $75, $75, $75, $99, $99, $99, $99, $99;
+  db  $99, $99, $99, $99, $75, $75, $75, $75, $75, $75, $99, $99, $99, $99, $99, $99;
+  db  $99, $99, $99, $75, $75, $75, $75, $75, $75, $99, $99, $99, $99, $99, $99, $99;
+  db  $99, $99, $75, $75, $75, $75, $75, $75, $99, $99, $99, $99, $99, $99, $99, $99;
+  db  $4C, $4C, $4C, $4C, $4C, $4C, $4C, $4C, $4C, $4C, $4C, $4C, $4C, $4C, $4C, $4C;
+  db  $D5, $D5, $D5, $D5, $D5, $D5, $D5, $D5, $D5, $D5, $D5, $D5, $D5, $D5, $D5, $D5;
+  db  $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA;
+  db  $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA;
+  db  $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA;
+  db  $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA;
+  db  $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA;
 
+
+
+
+  pipe1Data db 0, 50 , 2 , 2 , 10 ; position 2 bytes, top length, gap, start spriteid
+  pipe2Data db 0, 100 , 3 , 3 , 18 ; position 2 bytes, top length, gap, start spriteid
+  pipe3Data db 0, 150 , 3 , 2 , 26 ; position 2 bytes, top length, gap, start spriteid
+  pipe4Data db 0, 200 ,4 , 2 , 34 ; position 2 bytes, top length, gap, start spriteid
+  pipe5Data db 0, 250 ,5 , 2 , 42 ; position 2 bytes, top length, gap, start spriteid
+  
+
+  pipeXPos db 0,0
+  pipeYPos db 0 
+  pipeTopTileCount db 0 
+  pipeSpriteToUse db 0
+  pipeGap db 0
+
+  
+  capID db 50 ; starting cap ID sprite
 
 
 END START 
