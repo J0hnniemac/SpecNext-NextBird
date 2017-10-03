@@ -92,7 +92,7 @@
 mainloop:
 ;  call animatebird
  call wait
- ; call movebird
+ 
 
 jr mainloop
 
@@ -105,7 +105,7 @@ wait   ld hl,pretim        ; previous time setting
 
 
 
-
+      
 
 
 
@@ -115,9 +115,12 @@ wait   ld hl,pretim        ; previous time setting
 wait0  ld a,(23672)        ; current timer.
        ld (hl),a           ; store this setting.
        ;call animatebird
-       ;call movebird
+
        call scrollL2
        call scrollPipes
+      call animatebird
+       
+
 
        ret
 
@@ -135,7 +138,7 @@ scrollL2:
 
   ld  a,(ScrollIndex)
   inc a   
-  inc a 
+  ;inc a 
   ld  (ScrollIndex),a
 
   ld      bc, $253B
@@ -170,20 +173,29 @@ scrollPipes:
 
   ld ix, pipe1Data
   call movePipe2
+  ld ix, pipe1Data
+  call movePipe2
 
  
   ld ix, pipe2Data
   call movePipe2
+    ld ix, pipe2Data
+  call movePipe2
 
   ld ix, pipe3Data
   call movePipe2
+   ld ix, pipe3Data
+  call movePipe2
 
+  ld ix, pipe4Data
+  call movePipe2
   ld ix, pipe4Data
   call movePipe2
 
   ld ix, pipe5Data
   call movePipe2
-
+  ld ix, pipe5Data
+  call movePipe2
 
   ld ix, pipe1Data
   call drawPipe
@@ -537,7 +549,7 @@ loadGameBackground:
 
 
 
-showSprite:
+showSpritex:
   push af
  
   ld bc, $303b
@@ -563,8 +575,26 @@ showSprite:
 
 ;;load ix with data start for column
 
+showSprite:
+  push af
+  ;ld a,9
+  ld bc, $303b
+  out (c), a ; select sprite 3
+  ld bc, $57
+  ld a, (bird_x) ; xpos >>> 32 on boarder ->>
+  out (c), a
+  ld a, (bird_y) ; ypos ? --- 32 upper ->>>
+  out (c), a
+  ld a, 0 ; 7-4 is palette offset, bit 3 is X mirror, bit 2 is Y mirror, bit 1 is rotate flag and bit 0 is X MSB. 
+  ; 8 flip x 4 flipy 2 rotate 1 msb
+  out (c), a
+  pop af
+  xor 128
+  ;ld a, 137 ; spite visible pattern 0 ??? ;;128 = 0
+  out (c), a
+
   
-  
+  ret   
 
 
 
@@ -640,7 +670,7 @@ load_spriteEnd_data_loop:
 
 
 loadBird1:
-  ld a, 61
+  ld a, 0
   ld hl,Sprite1
   ld bc, $303b
   out (c), a ; 
@@ -658,7 +688,7 @@ load_sprite_loopx1:
 
 
 loadBird2:
-  ld a, 62
+  ld a, 1
   ld hl,Sprite2
   ld bc, $303b
   out (c), a ; 
@@ -953,6 +983,108 @@ makeAllSpritesVisible:
 
 
 
+
+hideSprite:
+  push af
+  ;ld a,9
+  ld bc, $303b
+  out (c), a ; select sprite 3
+  ld bc, $57
+  ld a, (bird_x) ; xpos >>> 32 on boarder ->>
+  out (c), a
+  ld a, (bird_y) ; ypos ? --- 32 upper ->>>
+  out (c), a
+  ld a, 0 ; 7-4 is palette offset, bit 3 is X mirror, bit 2 is Y mirror, bit 1 is rotate flag and bit 0 is X MSB. 
+  ; 8 flip x 4 flipy 2 rotate 1 msb
+  out (c), a
+  pop af
+  ;xor 128
+  ;ld a, 137 ; spite visible pattern 0 ??? ;;128 = 0
+  out (c), a
+
+  ret
+
+
+
+animatebird:
+  ;get birdaniIndex
+  ld bc,0
+  ld a, (birdaniIndex)
+  ld c, a
+  ld hl, birdaniSeqquence
+  add hl,bc ; hl = sprite
+  ld a,(hl)
+  call hideSprite
+
+  ;sprite is hidden, get next sprite
+
+
+  ld hl, birdaniIndex
+  dec (hl)
+  
+  jp NZ,indexok ; index > 1
+  ld (hl), 2 ;> reset index
+
+indexok:
+  ;index is saved, lookup bird
+  ld bc,0
+  ld a, (birdaniIndex)
+  ld c, a
+  ld hl, birdaniSeqquence
+  add hl,bc ; hl = sprite
+  ld a,(hl)
+
+  call showSprite
+  halt
+
+  ret
+
+
+
+
+
+movebird:
+  ld bc,63486         ; keyboard row 1-5/joystick port 2.
+    in a,(c)            ; see what keys are pressed.
+    rra                 ; outermost bit = key 1.
+    push af             ; remember the value.
+    call nc,mpl         ; it's being pressed, move left.
+    pop af              ; restore accumulator.
+    rra                 ; next bit along (value 2) = key 2.
+    push af             ; remember the value.
+    call nc,mpr         ; being pressed, so move right.
+    pop af              ; restore accumulator.
+    rra                 ; next bit (value 4) = key 3.
+    push af             ; remember the value.
+    call nc,mpd         ; being pressed, so move down.
+    pop af              ; restore accumulator.
+    rra                 ; next bit (value 8) reads key 4.
+    call nc,mpu         ; it's being pressed, move up.
+    ret
+
+mpl:
+  ld hl, bird_x
+    dec (hl)
+    ret
+mpr:
+  ld hl, bird_x
+    inc (hl)
+    ret
+mpu:
+  ld hl, bird_y
+    dec (hl)
+    ret
+mpd:
+  ld hl, bird_y
+    inc (hl)
+    ret
+
+
+
+ret
+
+
+
 Sprite1:
   db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3;
   db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3;
@@ -1070,6 +1202,9 @@ BottomSprite:
 
   
   capID db 50 ; starting cap ID sprite
-
+  birdaniSeqquence db 0,1,0,1,0,1,0,1,0,1,0,1;
+  birdaniIndex db 2;
+  bird_x     db     64 ; x 
+  bird_y     db     96 ; y 
 
 END START 
