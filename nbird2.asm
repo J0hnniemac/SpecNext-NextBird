@@ -56,8 +56,8 @@
 ;  ret
   call makeAllSpritesVisible
 
-  ;ld hl, capID
-  ;ld a, 50
+  ld hl, capID
+  ld a, 50
   ld (hl), a
   ld ix, pipe1Data
   call drawPipe
@@ -77,12 +77,205 @@
 
   ld ix, pipe5Data
   call drawPipe
-ret
+
+
+
+
+
+
+
+
+
+
+
+
+mainloop:
+;  call animatebird
+ call wait
+ ; call movebird
+
+jr mainloop
+
+
+wait   ld hl,pretim        ; previous time setting
+       ld a,(23672)        ; current timer setting.
+       sub (hl)            ; difference between the two.
+       cp 6                ; have two frames elapsed yet?
+       jr nc,wait0         ; yes, no more delay.
+
+
+
+
+
+
+
+
+
+       ret
+wait0  ld a,(23672)        ; current timer.
+       ld (hl),a           ; store this setting.
+       ;call animatebird
+       ;call movebird
+       call scrollL2
+       call scrollPipes
+
+       ret
+
+
+
+
+
+
+scrollL2:
+  ;ret
+
+  ld      bc, $243B    ; select the scroll register
+  ld      a,22
+  out     (c),a     ; select layer 2 "X" scroll
+
+  ld  a,(ScrollIndex)
+  inc a   
+  inc a 
+  ld  (ScrollIndex),a
+
+  ld      bc, $253B
+  out     (c),a   
+
+
+
+  ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+scrollPipes:
+
+  ld hl, capID
+  ld a, 50
+  ld (hl), a
+
+  ld ix, pipe1Data
+  call movePipe2
+
+ 
+  ld ix, pipe2Data
+  call movePipe2
+
+  ld ix, pipe3Data
+  call movePipe2
+
+  ld ix, pipe4Data
+  call movePipe2
+
+  ld ix, pipe5Data
+  call movePipe2
+
+
+  ld ix, pipe1Data
+  call drawPipe
+
+  ld ix, pipe2Data
+  call drawPipe
+
+  ld ix, pipe3Data
+  call drawPipe
+  ld ix, pipe4Data
+  call drawPipe
+  ld ix, pipe5Data
+  call drawPipe
+
 
 
 ret
 
 ;--------------------ROUTINES------
+
+movePipe:
+ ;ix hold pointer to database.
+  ;pipe1Data db 0, 32 , 4 , 2 , 10 ; position 2 bytes, top length, gap, start spriteid
+
+
+ ld a,(ix+1)
+ dec a
+
+ cp 16
+
+ jp nz, notOffScreen
+
+  ld a, 1
+  ld (ix), a
+
+  ld a, 32
+
+ notOffScreen:
+
+ ld (ix+1), a
+
+
+ ret
+
+
+movePipe2:
+ ;ix hold pointer to database.
+  ;pipe1Data db 0, 32 , 4 , 2 , 10 ; position 2 bytes, top length, gap, start spriteid
+
+  ld a,(ix)
+  cp 0
+  jp z, check16
+
+
+  ld a,(ix+1)
+  dec a
+  cp 255
+  jp nz, saveX
+  ld (ix+1), a
+  ld a,0
+  ld (ix), a
+  jp endMovePipe2
+
+
+saveX:
+  
+  ld (ix+1), a
+  jp endMovePipe2
+
+
+check16:
+  ld a,(ix+1)
+  dec a
+  cp 16
+  jp nz, notOffScreen2
+
+  ld a,1
+  ld (ix+0), a
+  ld a,32
+  ld (ix+1), a
+  jp endMovePipe2
+
+
+ notOffScreen2:
+
+ ld (ix+1), a
+
+endMovePipe2:
+
+ ret
+
+
 
 drawPipe:
   ;ix hold pointer to database.
@@ -93,6 +286,12 @@ drawPipe:
   ;seed data
   ld hl, pipeYPos
   ld (hl), 32 ; pipe y position - always starts at 32
+
+  ld hl, pipeXPos ;
+  ld a, (ix)
+  ld (hl), a ; save xpos from databased
+
+
   ld hl, pipeXPos+1 ;
   ld a, (ix+1)
   ld (hl), a ; save xpos from databased
@@ -117,6 +316,8 @@ topPipeLoop:
   out (c), a
   ld a, 0 ; 7-4 is palette offset, bit 3 is X mirror, bit 2 is Y mirror, bit 1 is rotate flag and bit 0 is X MSB. 
   ; 8 flip x 4 flipy 2 rotate 1 msb
+  ld a,(pipeXPos) ; if x is on right of screen
+
   out (c), a
 
   ld a, (pipeSpriteToUse)
@@ -159,6 +360,9 @@ topPipeLoop:
   out (c), a
   ld a, 4 ; 7-4 is palette offset, bit 3 is X mirror, bit 2 is Y mirror, bit 1 is rotate flag and bit 0 is X MSB. 
   ; 8 flip x 4 flipy 2 rotate 1 msb
+  ld a,(pipeXPos) ; if x is on right of screen
+  xor 4
+
   out (c), a
   pop af
   xor 128
@@ -194,6 +398,8 @@ incGap:
   out (c), a
   ld a, 0 ; 7-4 is palette offset, bit 3 is X mirror, bit 2 is Y mirror, bit 1 is rotate flag and bit 0 is X MSB. 
   ; 8 flip x 4 flipy 2 rotate 1 msb
+  ld a,(pipeXPos) ; if x is on right of screen
+
   out (c), a
   pop af
   xor 128
@@ -224,6 +430,8 @@ pipeBottomLoop:
   out (c), a
   ld a, 0 ; 7-4 is palette offset, bit 3 is X mirror, bit 2 is Y mirror, bit 1 is rotate flag and bit 0 is X MSB. 
   ; 8 flip x 4 flipy 2 rotate 1 msb
+  ld a,(pipeXPos) ; if x is on right of screen
+  xor 4
   out (c), a
   pop af
   xor 128
@@ -844,12 +1052,14 @@ BottomSprite:
 
 
 
-
-  pipe1Data db 0, 50 , 2 , 2 , 10 ; position 2 bytes, top length, gap, start spriteid
-  pipe2Data db 0, 100 , 3 , 3 , 18 ; position 2 bytes, top length, gap, start spriteid
-  pipe3Data db 0, 150 , 3 , 2 , 26 ; position 2 bytes, top length, gap, start spriteid
-  pipe4Data db 0, 200 ,4 , 2 , 34 ; position 2 bytes, top length, gap, start spriteid
-  pipe5Data db 0, 250 ,5 , 2 , 42 ; position 2 bytes, top length, gap, start spriteid
+  pretim defb 0
+  ScrollIndex db 0
+;  pipe1Data db 1, 16 , 2 , 2 , 10 ; position 2 bytes, top length, gap, start spriteid
+  pipe1Data db 0, 70 , 2 , 2 , 10 ; position 2 bytes, top length, gap, start spriteid
+  pipe2Data db 0, 124 , 3 , 3 , 18 ; position 2 bytes, top length, gap, start spriteid
+  pipe3Data db 0, 178, 3 , 2 , 26 ; position 2 bytes, top length, gap, start spriteid
+  pipe4Data db 0, 232 ,4 , 2 , 34 ; position 2 bytes, top length, gap, start spriteid
+  pipe5Data db 1, 30 ,5 , 2 , 42 ; position 2 bytes, top length, gap, start spriteid
   
 
   pipeXPos db 0,0
