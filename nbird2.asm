@@ -28,8 +28,20 @@
   db command
   endm
 
-
-
+  PIPE1SPRITESTART     equ 10
+  PIPE2SPRITESTART     equ 18
+  PIPE3SPRITESTART     equ 26
+  PIPE4SPRITESTART     equ 34
+  PIPE5SPRITESTART     equ 42
+  BIRDANI1             equ 50
+  BIRDANI2             equ 51
+  SCOREID1              equ 52
+  SCOREID2              equ 53
+  PIPECAPSTART         equ 0 
+  SCORE1X              equ 142
+  SCORE2X              equ 150
+  SCOREY               equ 38
+  BIRDX  equ 64
 
 
   org 32768
@@ -49,15 +61,24 @@
   call loadBird1
   call loadBird2
 
- 
+  ld hl, No1
+  call loadScore1
+  ld hl, No1
+  call loadScore2
+
+  
+
+
 
 
   ;call  initiliseSprites
 ;  ret
-  call makeAllSpritesVisible
+  call showScore  
 
+  call makeAllSpritesVisible
+;ret
   ld hl, capID
-  ld a, 50
+  ld a, PIPECAPSTART
   ld (hl), a
   ld ix, pipe1Data
   call drawPipe
@@ -80,19 +101,21 @@
 
 
 
+  
 
 
+  ld hl,playerScore
+  ld (hl), 0
 
-
-
-
-
+  ld hl, No3
+  call loadScore2
 
 
 mainloop:
 ;  call animatebird
+
  call wait
- 
+ call checkCollision
 
 jr mainloop
 
@@ -104,29 +127,107 @@ wait   ld hl,pretim        ; previous time setting
        jr nc,wait0         ; yes, no more delay.
 
 
-
-      
-
-
-
-
-
        ret
 wait0  ld a,(23672)        ; current timer.
        ld (hl),a           ; store this setting.
-       ;call animatebird
-
-       call scrollL2
+       call decBirdY
        call scrollPipes
-      call animatebird
-       
-
+       call animatebird
+       call flap
+       call updateScore
+       call scrollL2
 
        ret
 
 
 
 
+
+
+endGameLoop:
+  ;lwait for keypress
+  jr endGameLoop
+
+startGameLoop:
+  ;wait for key press
+
+  jr startGameLoop
+
+checkCollision:
+
+;ld bc,0x303B         ; Bits 7-2: Reserved, always 0. Bit 1: max sprites per line flag. Bit 0: Collision flag
+;    in a,(c) 
+;    cp 1
+;    jp z, endGameSeq
+  ret
+
+
+endGameSeq:
+
+
+  
+
+
+jp endGameSeq
+
+
+
+
+decBirdY
+
+  ld a, (bird_y)
+
+  
+
+  inc a
+
+  ld (bird_y), a
+  
+  cp 197
+
+  jp z, endGame ; hit the bottom
+
+
+inc a
+
+  ld (bird_y), a
+  
+  cp 197
+
+  jp z, endGame ; hit the bottom
+
+inc a
+
+  ld (bird_y), a
+  
+  cp 197
+
+  jp z, endGame ; hit the bottom
+
+inc a
+
+  ld (bird_y), a
+  
+  cp 197
+
+  jp z, endGame ; hit the bottom
+
+inc a
+
+  ld (bird_y), a
+  
+  cp 197
+
+  jp z, endGame ; hit the bottom
+
+
+  ret
+
+
+
+endGame
+
+  jp endGameLoop
 
 
 scrollL2:
@@ -168,7 +269,7 @@ scrollL2:
 scrollPipes:
 
   ld hl, capID
-  ld a, 50
+  ld a, PIPECAPSTART
   ld (hl), a
 
   ld ix, pipe1Data
@@ -267,15 +368,32 @@ saveX:
 
 
 check16:
+
+
+
+
   ld a,(ix+1)
   dec a
+  
+  cp 48
+  jp nz, skip1
+  ld hl,playerScore
+  inc (hl)
+
+
+skip1:
   cp 16
   jp nz, notOffScreen2
+  
+  
 
   ld a,1
   ld (ix+0), a
   ld a,32
   ld (ix+1), a
+
+
+
   jp endMovePipe2
 
 
@@ -287,7 +405,181 @@ endMovePipe2:
 
  ret
 
+updateScore:
 
+
+  ;ld hl, No1
+  ;call loadScore1
+  ;ld hl, No1
+  ;call loadScore2
+
+
+
+  ld a,(playerScore)
+  cp 0
+  jp z, zero
+ld a,(playerScore)
+  cp 1
+  jp z, one
+ld a,(playerScore)
+  cp 2
+  jp z, two
+ld a,(playerScore)
+
+  cp 3
+  jp z, three
+ld a,(playerScore)
+  cp 4
+  jp z, four
+ld a,(playerScore)
+  cp 5
+  jp z, five
+ld a,(playerScore)
+  cp 6
+  jp z, six
+ld a,(playerScore)
+  cp 7
+  jp z, seven
+ld a,(playerScore)
+  cp 8
+  jp z, eight
+ld a,(playerScore)
+  cp 9
+  jp z, nine
+
+  ld hl, No2
+  call loadScore2
+  jp endScore2
+; not 0-9
+  jp xone
+
+
+
+
+
+  
+
+
+
+
+
+
+zero:
+  ld hl, No1
+  call loadScore2
+  jp endScore2
+
+one:
+  ld hl, No2
+  call loadScore2
+  jp endScore2
+
+two:
+  ld hl, No3
+  call loadScore2
+  jp endScore2
+three:
+  ld hl, No4
+  call loadScore2
+  jp endScore2
+
+four:
+  ld hl, No5
+  call loadScore2
+  jp endScore2
+
+
+five:
+  ld hl, No6
+  call loadScore2
+  jp endScore2
+
+six:
+  ld hl, No7
+  call loadScore2
+  jp endScore2
+
+seven:
+  ld hl, No8
+  call loadScore2
+  jp endScore2
+
+eight:
+  ld hl, No9
+  call loadScore2
+  jp endScore2
+
+nine:
+  ld hl, No10
+  call loadScore2
+  jp endScore2
+
+
+xzero:
+  ld hl, No1
+  call loadScore1
+  jp endScore2
+
+xone:
+  ld hl, No2
+  call loadScore1
+  jp endScore2
+
+xtwo:
+  ld hl, No3
+  call loadScore1
+  jp endScore2
+xthree:
+  ld hl, No4
+  call loadScore1
+  jp endScore2
+
+xfour:
+  ld hl, No5
+  call loadScore1
+  jp endScore2
+
+
+xfive:
+  ld hl, No6
+  call loadScore1
+  jp endScore2
+
+xsix:
+  ld hl, No7
+  call loadScore1
+  jp endScore2
+
+xseven:
+  ld hl, No8
+  call loadScore1
+  jp endScore2
+
+xeight:
+  ld hl, No9
+  call loadScore1
+  jp endScore2
+
+xnine:
+  ld hl, No10
+  call loadScore1
+  jp endScore2
+
+
+
+
+
+endScore2:
+
+call showScore 
+
+
+
+
+
+
+
+  ret
 
 drawPipe:
   ;ix hold pointer to database.
@@ -420,6 +712,10 @@ incGap:
 
 
   ld a, (pipeYPos)
+
+
+  add a,16
+  ld (pipeYPos), a ; add 16 
 
 pipeBottomLoop:
 
@@ -637,7 +933,7 @@ initEndPipeSprites:
  ;ld hl, Pipe 
  ;ld a, 10
  ld hl, PipeEnd 
- ld a, 50
+ ld a, PIPECAPSTART
 ; loadSpriteData:
   ld bc, $303b
   out (c), a ; 
@@ -664,13 +960,90 @@ load_spriteEnd_data_loop:
 
 
 
+loadScore1:
+  ld a, SCOREID1
+  ;ld hl,No1
+  ld bc, $303b
+  out (c), a ; 
+
+  ld de, 256
+  ld bc, $5b
+load_score_loopx1:
+  outi  ;reads (hl) and sends to port (c) e.g load the sprite into sprite engine thingy
+  inc b ; inc a a outi is decrementing it.
+  dec de
+  ld a,d
+  or e
+  jr nz, load_score_loopx1
+  ret
+
+loadScore2:
+  ld a, SCOREID2
+  ;ld hl,No2
+  ld bc, $303b
+  out (c), a ; 
+
+  ld de, 256
+  ld bc, $5b
+load_score_loopx2:
+  outi  ;reads (hl) and sends to port (c) e.g load the sprite into sprite engine thingy
+  inc b ; inc a a outi is decrementing it.
+  dec de
+  ld a,d
+  or e
+  jr nz, load_score_loopx2
+ ret
+
+
+
+showScore:
+  ld a, SCOREID1
+  push af
+  ;ld a,9
+  ld bc, $303b
+  out (c), a ; select sprite 3
+  ld bc, $57
+  ld a, SCORE1X ; xpos >>> 32 on boarder ->>
+  out (c), a
+  ld a, SCOREY ; ypos ? --- 32 upper ->>>
+  out (c), a
+  ld a, 0 ; 7-4 is palette offset, bit 3 is X mirror, bit 2 is Y mirror, bit 1 is rotate flag and bit 0 is X MSB. 
+  ; 8 flip x 4 flipy 2 rotate 1 msb
+  out (c), a
+  pop af
+  xor 128
+  ;ld a, 137 ; spite visible pattern 0 ??? ;;128 = 0
+  out (c), a
+
+
+  ld a, SCOREID2
+  push af
+  ;ld a,9
+  ld bc, $303b
+  out (c), a ; select sprite 3
+  ld bc, $57
+  ld a, SCORE2X ; xpos >>> 32 on boarder ->>
+  out (c), a
+  ld a, SCOREY ; ypos ? --- 32 upper ->>>
+  out (c), a
+  ld a, 0 ; 7-4 is palette offset, bit 3 is X mirror, bit 2 is Y mirror, bit 1 is rotate flag and bit 0 is X MSB. 
+  ; 8 flip x 4 flipy 2 rotate 1 msb
+  out (c), a
+  pop af
+  xor 128
+  ;ld a, 137 ; spite visible pattern 0 ??? ;;128 = 0
+  out (c), a
+
+
+  
+  ret   
 
 
 
 
 
 loadBird1:
-  ld a, 0
+  ld a, BIRDANI1
   ld hl,Sprite1
   ld bc, $303b
   out (c), a ; 
@@ -688,7 +1061,7 @@ load_sprite_loopx1:
 
 
 loadBird2:
-  ld a, 1
+  ld a, BIRDANI2
   ld hl,Sprite2
   ld bc, $303b
   out (c), a ; 
@@ -1040,48 +1413,84 @@ indexok:
   ret
 
 
+flap:
 
 
-
-movebird:
   ld bc,63486         ; keyboard row 1-5/joystick port 2.
     in a,(c)            ; see what keys are pressed.
     rra                 ; outermost bit = key 1.
     push af             ; remember the value.
-    call nc,mpl         ; it's being pressed, move left.
+    call nc,mvup         ; it's being pressed, move left.
     pop af              ; restore accumulator.
     rra                 ; next bit along (value 2) = key 2.
     push af             ; remember the value.
-    call nc,mpr         ; being pressed, so move right.
+    call nc,mvup         ; being pressed, so move right.
     pop af              ; restore accumulator.
     rra                 ; next bit (value 4) = key 3.
     push af             ; remember the value.
-    call nc,mpd         ; being pressed, so move down.
+    call nc,mvup         ; being pressed, so move down.
     pop af              ; restore accumulator.
     rra                 ; next bit (value 8) reads key 4.
-    call nc,mpu         ; it's being pressed, move up.
+    call nc,mvup         ; it's being pressed, move up.
+    ;ret
+ld bc,32766         ; keyboard row 1-5/joystick port 2.
+    in a,(c)            ; see what keys are pressed.
+    rra                 ; outermost bit = key 1.
+    push af             ; remember the value.
+    call nc,mvup         ; it's being pressed, move left.
+    pop af              ; restore accumulator.
+    rra                 ; next bit along (value 2) = key 2.
+    push af             ; remember the value.
+    call nc,mvup         ; being pressed, so move right.
+    pop af              ; restore accumulator.
+    rra                 ; next bit (value 4) = key 3.
+    push af             ; remember the value.
+    call nc,mvup         ; being pressed, so move down.
+    pop af              ; restore accumulator.
+    rra                 ; next bit (value 8) reads key 4.
+    call nc,mvup         ; it's being pressed, move up.
+    ;ret
+
+ld bc,65278         ; keyboard row 1-5/joystick port 2.
+    in a,(c)            ; see what keys are pressed.
+    rra                 ; outermost bit = key 1.
+    push af             ; remember the value.
+    call nc,mvup         ; it's being pressed, move left.
+    pop af              ; restore accumulator.
+    rra                 ; next bit along (value 2) = key 2.
+    push af             ; remember the value.
+    call nc,mvup         ; being pressed, so move right.
+    pop af              ; restore accumulator.
+    rra                 ; next bit (value 4) = key 3.
+    push af             ; remember the value.
+    call nc,mvup         ; being pressed, so move down.
+    pop af              ; restore accumulator.
+    rra                 ; next bit (value 8) reads key 4.
+    call nc,mvup         ; it's being pressed, move up.
     ret
 
-mpl:
-  ld hl, bird_x
-    dec (hl)
-    ret
-mpr:
-  ld hl, bird_x
-    inc (hl)
-    ret
-mpu:
+
+
+mvup:
   ld hl, bird_y
     dec (hl)
-    ret
-mpd:
-  ld hl, bird_y
-    inc (hl)
-    ret
+    dec (hl)
+    dec (hl)
+    dec (hl)
+    dec (hl)
+    dec (hl)
+    dec (hl)
+    dec (hl)
+    dec (hl)
+    dec (hl)
+  ret
+
 
 
 
 ret
+
+
 
 
 
@@ -1182,16 +1591,220 @@ BottomSprite:
   db  $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA;
   db  $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA, $DA;
 
+No1:
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $FF, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $FF, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $FF, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $FF, $FF, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $FF, $FF, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $FF, $FF, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $FF, $FF, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $FF, $FF, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $FF, $FF, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $FF, $FF, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $FF, $FF, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $FF, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $FF, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $FF, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
+
+
+
+No2:
+  db  $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $00, $00, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
+
+
+
+No3:
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
+
+
+
+No4:
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
+
+
+
+No5:
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
+
+
+
+No6:
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
+
+
+
+No7:
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
+
+
+
+No8:
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
+
+
+
+No9:
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
+
+
+
+No10:
+  db  $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $00, $FF, $FF, $FF, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
+  db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
+
+
+
+playerScore db 0
+
+
+
 
 
   pretim defb 0
   ScrollIndex db 0
 ;  pipe1Data db 1, 16 , 2 , 2 , 10 ; position 2 bytes, top length, gap, start spriteid
-  pipe1Data db 0, 70 , 2 , 2 , 10 ; position 2 bytes, top length, gap, start spriteid
-  pipe2Data db 0, 124 , 3 , 3 , 18 ; position 2 bytes, top length, gap, start spriteid
-  pipe3Data db 0, 178, 3 , 2 , 26 ; position 2 bytes, top length, gap, start spriteid
-  pipe4Data db 0, 232 ,4 , 2 , 34 ; position 2 bytes, top length, gap, start spriteid
-  pipe5Data db 1, 30 ,5 , 2 , 42 ; position 2 bytes, top length, gap, start spriteid
+  pipe1Data db 0, 70 , 2 , 4 , PIPE1SPRITESTART ; position 2 bytes, top length, gap, start spriteid
+  pipe2Data db 0, 124 , 3 , 3 , PIPE2SPRITESTART ; position 2 bytes, top length, gap, start spriteid
+  pipe3Data db 0, 178, 3 , 2 , PIPE3SPRITESTART ; position 2 bytes, top length, gap, start spriteid
+  pipe4Data db 0, 232 ,4 , 2 , PIPE4SPRITESTART ; position 2 bytes, top length, gap, start spriteid
+  pipe5Data db 1, 30 ,5 , 2 , PIPE5SPRITESTART ; position 2 bytes, top length, gap, start spriteid
   
 
   pipeXPos db 0,0
@@ -1201,10 +1814,10 @@ BottomSprite:
   pipeGap db 0
 
   
-  capID db 50 ; starting cap ID sprite
-  birdaniSeqquence db 0,1,0,1,0,1,0,1,0,1,0,1;
+  capID db 0 ; starting cap ID sprite
+  birdaniSeqquence db BIRDANI1,BIRDANI2,BIRDANI1,BIRDANI2,BIRDANI1,BIRDANI2,BIRDANI1,BIRDANI2,BIRDANI1,BIRDANI2,BIRDANI1,BIRDANI2;
   birdaniIndex db 2;
-  bird_x     db     64 ; x 
+  bird_x     db     BIRDX ; x 
   bird_y     db     96 ; y 
 
 END START 
