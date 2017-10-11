@@ -3,6 +3,8 @@
 ; Credits       : Too Many to name from https://www.facebook.com/groups/specnext/
 ;               : ZX Spectrum Next FB Group
 ;
+;               Background art tidy up by Simon Butler - :)
+;
 ;
 ;
 ;
@@ -42,6 +44,8 @@ SCORE1X                 equ 142
 SCORE2X                 equ 150
 SCOREY                  equ 38
 BIRDX                   equ 64
+BIRDY                   equ 96
+
 
 
 
@@ -50,6 +54,9 @@ START
 
 
 ;Initilise All Sprites
+
+restartGame:
+
         call initPipeSprites
         call initEndPipeSprites
         call initBird1
@@ -64,8 +71,14 @@ START
 
 
 startGame:
+        
         ;init standard variables 
         ;show start screen
+        call resetPipeDB
+        call resetBird
+        call resets
+        call makeAllSpritesInVisible
+        call resetScrollL2
         call setupScreen
         ld ix, bmpStart
         call loadABackground
@@ -114,7 +127,7 @@ mainGameLoop:
 wait   ld hl,pretim        ; previous time setting
        ld a,(23672)        ; current timer setting.
        sub (hl)            ; difference between the two.
-       cp 6                ; have two frames elapsed yet?
+       cp 4                ; have two frames elapsed yet?
        jr nc,wait6         ; yes, no more delay.
              ; yes, no more delay.
 
@@ -131,22 +144,108 @@ wait   ld hl,pretim        ; previous time setting
        ;call keypress
        call updateScore
        call scrollL2
+       call checkCollisions
         call animatebird
       call decBirdY
        
        call keypress
+       
        ret
 
 
 
 
-endGameLoop:
+endGameLoop1:
+
+ewait   ld hl,epretim        ; previous time setting
+       ld a,(23672)        ; current timer setting.
+       sub (hl)            ; difference between the two.
+       cp 1                ; have two frames elapsed yet?
+       jr nc,ewait0         ; yes, no more delay.
+       jp ewait
+ewait0  ld a,(23672)        ; current timer.
+       ld (hl),a           ; store this setting.
+       
+
+       call moveDeadBird
+
+        
+       call changebc
 
 
-        jp endGameLoop
 
 
 
+
+
+
+
+
+
+        jp endGameLoop1
+
+
+epretim db 0
+
+
+bcol db 15
+
+changebc:
+
+        ld a,(bcol)
+        dec a
+        jp nz, bcok
+        ld a, 15
+        bcok:
+        call 8859
+        ld (bcol),a
+ret
+
+
+
+moveDeadBird:
+
+
+
+        ld a, (bird_y)
+        inc a
+        ld (bird_y), a
+        cp 197
+        jp z, endScreen ; hit the bottom
+
+
+        call animatebird2
+        
+
+
+
+        ret
+
+
+endScreen:
+
+; wait for keypress
+
+
+       ld hl,23560         ; LAST K system variable.
+        ld (hl),0           ; put null value there.
+loopb   ld a,(hl)           ; new value of LAST K.
+        cp 0                ; is it still zero?
+        jr z,loopb           ; yes, so no key pressed.
+jp startGame
+;jp restartGame
+
+; Pseudo-random number generator.
+; Steps a pointer through the ROM (held in seed), returning the contents
+; of the byte at that location.
+
+random ld hl,(seed)        ; pointer to ROM.
+       res 5,h             ; stay within first 8K of ROM.
+       ld a,(hl)           ; get "random" number from location.
+       xor l               ; more randomness.
+       inc hl              ; increment pointer.
+       ld (seed),hl        ; new position.
+       ret
 
 
 keypress
@@ -177,6 +276,120 @@ flap
 endflap
   ret
 
+
+
+
+
+resets:
+
+        ld a,10
+        call resetSpritePositions
+        ld a,11
+        call resetSpritePositions
+        ld a,12
+        call resetSpritePositions
+        ld a,13
+        call resetSpritePositions
+        ld a,14
+        call resetSpritePositions
+        ld a,15
+        call resetSpritePositions
+        ld a,16
+        call resetSpritePositions
+        ld a,17
+        call resetSpritePositions
+        ld a,18
+        call resetSpritePositions
+        ld a,19
+        call resetSpritePositions
+        ld a,20
+        call resetSpritePositions
+        ld a,21
+        call resetSpritePositions
+        ld a,22
+        call resetSpritePositions
+        ld a,23
+        call resetSpritePositions
+        ld a,24
+        call resetSpritePositions
+        ld a,25
+        call resetSpritePositions
+        ld a,26
+        call resetSpritePositions
+        ld a,27
+        call resetSpritePositions
+        ld a,28
+        call resetSpritePositions
+        ld a,29
+        call resetSpritePositions
+        ld a,30
+        call resetSpritePositions
+        ld a,31
+        call resetSpritePositions
+        ld a,32
+        call resetSpritePositions
+        ld a,33
+        call resetSpritePositions
+        ld a,34
+        call resetSpritePositions
+        ld a,35
+        call resetSpritePositions
+        ld a,36
+        call resetSpritePositions
+        ld a,37
+        call resetSpritePositions
+        ld a,38
+        call resetSpritePositions
+        ld a,39
+        call resetSpritePositions
+        ld a,40
+        call resetSpritePositions
+        ld a,41
+        call resetSpritePositions
+        ld a,42
+        call resetSpritePositions
+        ld a,43
+        call resetSpritePositions
+        ld a,44
+        call resetSpritePositions
+        ld a,45
+        call resetSpritePositions
+        ld a,46
+        call resetSpritePositions
+        ld a,47
+        call resetSpritePositions
+        ld a,48
+        call resetSpritePositions
+        ld a,49
+        call resetSpritePositions
+        
+ 
+
+ret
+
+
+
+resetSpritePositions:
+
+;        ld a,0
+        push af
+        ld bc, $303b
+        out (c), a ; select sprite 3
+        ld bc, $57
+        ld a, 0 ; xpos >>> 32 on boarder ->>
+        out (c), a
+        ld a, 0 ; ypos ? --- 32 upper ->>>
+        out (c), a
+        ld a, 0 ; 7-4 is palette offset, bit 3 is X mirror, bit 2 is Y mirror, bit 1 is rotate flag and bit 0 is X MSB. 
+  ; 8 flip x 4 flipy 2 rotate 1 msb
+        out (c), a
+        pop af
+        xor 128
+  ;ld a, 137 ; spite visible pattern 0 ??? ;;128 = 0
+        out (c), a
+
+  
+  ret   
 
 
 
@@ -318,8 +531,11 @@ load_sprite_loopx2:
 
 drawpavement:
 
-paveno db 15
-pavex db 0
+
+ld hl,paveno
+ld (hl), 15
+ld hl,pavex
+ld (hl), 0
 
 pave1:  
     
@@ -382,7 +598,10 @@ pave1nc:
 
 
 ;ret 
-rowno db 15
+
+
+        ld hl, rowno
+        ld (hl), 15
 pavelast1:  
     
     ld ix, BottomSprite
@@ -713,7 +932,18 @@ makeAllSpritesVisible:
   ret
 
 
+makeAllSpritesInVisible:
+ 
+  ld bc, $243b
+  ld a, 21
+  out (c), a
 
+  ;OUT 0x253B, 1; REM All sprites visible
+  ld bc, $253b
+  ld a, 0
+  out (c), a
+
+  ret
 
 
 showPipes:
@@ -999,8 +1229,8 @@ inc a
   ret
 
 endGame:
-
-  jp endGameLoop
+ ;jp startGame
+  jp endGameLoop1
 
 
 
@@ -1082,9 +1312,49 @@ indexok:
   ld a,(hl)
 
   call showSprite
-  halt
+  ;halt
 
   ret
+
+
+
+animatebird2:
+  ;get birdaniIndex
+  ld bc,0
+  ld a, (birdaniIndex)
+  ld c, a
+  ld hl, birdaniSeqquence
+  add hl,bc ; hl = sprite
+  ld a,(hl)
+  call hideSprite
+
+  ;sprite is hidden, get next sprite
+
+
+  ;ld hl, birdaniIndex
+  ;dec (hl)
+ ; 
+  ;jp NZ,indexok2 ; index > 1
+  ;ld (hl), 2 ;> reset index
+
+indexok2:
+  ;index is saved, lookup bird
+  ld bc,0
+  ld a, (birdaniIndex)
+  ld c, a
+  ld hl, birdaniSeqquence
+  add hl,bc ; hl = sprite
+  ld a,(hl)
+
+  call showSprite2
+
+
+  ret
+
+
+
+
+
 updateScore:
 
 
@@ -1280,6 +1550,24 @@ scrollL2:
 
   ret
 
+resetScrollL2:
+  ;ret
+
+  ld      bc, $243B    ; select the scroll register
+  ld      a,22
+  out     (c),a     ; select layer 2 "X" scroll
+
+  ld  a,0
+  inc a   
+  ;inc a 
+  ld  (ScrollIndex),a
+
+  ld      bc, $253B
+  out     (c),a   
+
+
+
+  ret
 
 
   movePipe2:
@@ -1331,6 +1619,20 @@ skip1:
   ld (ix+0), a
   ld a,32
   ld (ix+1), a
+
+
+;;; change length
+        call random
+        and 4
+        add a,1
+        ld (ix+2), a
+
+       call random
+        and 2
+        add a,2
+        ld (ix+3), a
+
+
 
 
 
@@ -1387,9 +1689,289 @@ showSprite:
   
   ret   
 ; DataStores
+showSprite2:
+  push af
+  ;ld a,9
+  ld bc, $303b
+  out (c), a ; select sprite 3
+  ld bc, $57
+  ld a, (bird_x) ; xpos >>> 32 on boarder ->>
+  out (c), a
+  ld a, (bird_y) ; ypos ? --- 32 upper ->>>
+  out (c), a
+  ld a, 2 ; 7-4 is palette offset, bit 3 is X mirror, bit 2 is Y mirror, bit 1 is rotate flag and bit 0 is X MSB. 
+  ; 8 flip x 4 flipy 2 rotate 1 msb
+  out (c), a
+  pop af
+  xor 128
+  ;ld a, 137 ; spite visible pattern 0 ??? ;;128 = 0
+  out (c), a
+
+  
+  ret   
+
+
+;// only 1 set of pipes can be in collision range
+checkCollisions:
+
+
+        ;ld iy, colldb
+        ;ld a, 0
+        ;ld (iy),a ;reset values
+        ;ld (iy+1),a
+        
+
+        ld ix, pipe1Data
+        ld a,(ix)
+        cp 1 ; checking if it is on right of screen
+        jp z, skipchk1  ;check column 2
+;;load xy info hea
+        
+        ld a, (ix+1)
+        cp 65
+        jp c, skipchk1
+        cp 80
+        jp nc, skipchk1
+
+        
 
 
 
+        jp checkGap ; column is in the area where the bird will be
+skipchk1:        
+
+        ld ix, pipe2Data
+        ld a,(ix)
+        cp 1 ; checking if it is on right of screen
+        jp z, skipchk2  ;check column 2
+;;load xy info hea
+        
+        ld a, (ix+1)
+        cp 65
+        jp c, skipchk2
+        cp 80
+        jp nc, skipchk2
+
+        jp checkGap ; column is in the area where the bird will be
+skipchk2:
+
+        ld ix, pipe3Data
+        ld a,(ix)
+        cp 1 ; checking if it is on right of screen
+        jp z, skipchk3  ;check column 2
+;;load xy info hea
+        
+        ld a, (ix+1)
+        cp 65
+        jp c, skipchk3
+        cp 80
+        jp nc, skipchk3
+
+        jp checkGap ; column is in the area where the bird will be
+skipchk3:        
+        ld ix, pipe4Data
+        ld a,(ix)
+        cp 1 ; checking if it is on right of screen
+        jp z, skipchk4  ;check column 2
+;;load xy info hea
+        
+        ld a, (ix+1)
+        cp 65
+        jp c, skipchk4
+        cp 80
+        jp nc, skipchk4
+
+        jp checkGap ; column is in the area where the bird will be
+skipchk4:        
+        ld ix, pipe5Data
+        ld a,(ix)
+        cp 1 ; checking if it is on right of screen
+        jp z, skipchk5  ;check column 2
+;;load xy info hea
+        
+        ld a, (ix+1)
+        cp 65
+        jp c, skipchk5
+        cp 80
+        jp nc, skipchk5
+
+        jp checkGap ; column is in the area where the bird will be
+skipchk5:        
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+xcheckCollisions:
+
+
+
+
+        ld ix, pipe3Data
+        ld a,(ix)
+        cp 1 ; checking if it is on right of screen
+        jp z, xskipchk2  ;check column 2
+;;load xy info hea
+        
+        ld a, (ix+1)
+        add a, 16
+        cp 65
+        jp c, xskipchk2
+        cp 80
+        jp nc, xskipchk2
+
+        jp checkGap ; column is in the area where the bird will be
+xskipchk2:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+jp cpend
+
+ 
+
+checkGap:
+        ;jp endGame
+        ; see if bird is in the gap
+        ld iy, CollisionDB
+        ld a, (ix+2)
+        ld de, 16
+        call Mul8
+        ld a, l
+        add a,32 ; start on 32
+        add a, 16 ; add cap
+        ld (iy), a ; ytop 
+
+
+
+        ld a, (ix+3)
+        ld de, 16
+        call Mul8
+        ld a, l
+        
+        ld l,(iy)
+        add a,l;
+
+
+        ld  (iy+1), a ; ybottom
+
+
+
+
+
+        ld a,(bird_y) ; top of bird
+        cp (iy)
+
+        jp c, endGame
+
+        ld a, 0
+        dec a ; set c flag
+
+        ld a,(bird_y)
+        add a, 12
+
+        cp (iy+1)
+        jp nc, endGame
+
+
+
+        
+
+
+
+
+cpend:
+
+
+
+
+
+
+        ret
+
+
+Mul8:                            ; this routine performs the operation HL=DE*A
+  ld hl,0                        ; HL is used to accumulate the result
+  ld b,8                         ; the multiplier (A) is 8 bits wide
+Mul8Loop:
+  rrca                           ; putting the next bit into the carry
+  jp nc,Mul8Skip                 ; if zero, we skip the addition (jp is used for speed)
+  add hl,de                      ; adding to the product if necessary
+Mul8Skip:
+  sla e                          ; calculating the next auxiliary product by shifting
+  rl d                           ; DE one bit leftwards (refer to the shift instructions!)
+  djnz Mul8Loop
+  ret
+
+
+
+resetPipeDB:
+
+       ; pipe1Data db 0, 70 , 2 , 4 , PIPE1SPRITESTART ; position 2 bytes, top length, gap, start spriteid
+       ; pipe2Data db 0, 124 , 3 , 3 , PIPE2SPRITESTART ; position 2 bytes, top length, gap, start spriteid
+       ; pipe3Data db 0, 178, 3 , 2 , PIPE3SPRITESTART ; position 2 bytes, top length, gap, start spriteid
+       ; pipe4Data db 0, 232 ,4 , 2 , PIPE4SPRITESTART ; position 2 bytes, top length, gap, start spriteid
+       ; pipe5Data db 1, 30 ,5 , 2 , PIPE5SPRITESTART ; position 2 bytes, top length, gap, start spriteid
+
+       ld hl, pipe1Data
+       ld (hl), 0
+       inc hl
+       ld (hl), 70
+       inc hl
+       ld (hl), 2
+       inc hl
+       ld (hl), 4
+       inc hl
+       ld (hl), PIPE1SPRITESTART
+
+       ld hl, pipe2Data
+       ld (hl), 0
+       inc hl
+       ld (hl), 124
+       inc hl
+       ld (hl), 3
+       inc hl
+       ld (hl), 3
+       inc hl
+       ld (hl), PIPE2SPRITESTART
+
+       ld hl, pipe3Data
+       ld (hl), 0
+       inc hl
+       ld (hl), 178
+       inc hl
+       ld (hl), 3
+       inc hl
+       ld (hl), 2
+       inc hl
+       ld (hl), PIPE3SPRITESTART
+
+       ld hl, pipe4Data
+       ld (hl), 0
+       inc hl
+       ld (hl), 232
+       inc hl
+       ld (hl), 4
+       inc hl
+       ld (hl), 2
+       inc hl
+       ld (hl), PIPE4SPRITESTART
+
+       ld hl, pipe5Data
+       ld (hl), 1
+       inc hl
+       ld (hl), 30
+       inc hl
+       ld (hl), 5
+       inc hl
+       ld (hl), 2
+       inc hl
+       ld (hl), PIPE5SPRITESTART
+
+
+ret
+
+resetBird:
+        ld hl,bird_y
+        ld (hl), BIRDY
+
+        ret
 Sprite1:
   db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3;
   db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3, $E3;
@@ -1685,6 +2267,11 @@ No10:
   db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $FF, $FF, $00, $00, $E3, $E3, $E3, $E3;
   db  $E3, $E3, $E3, $E3, $E3, $E3, $E3, $00, $00, $00, $00, $00, $E3, $E3, $E3, $E3;
 
+
+ 
+        paveno db 15
+        pavex db 0
+        rowno db 15
         pretim                  db 0
         lastkey                 db  0
         pipeSpriteCount         db 40
@@ -1696,6 +2283,7 @@ No10:
         pipeSpriteToUse db 0
         pipeGap db 0
 
+
         pipe1Data db 0, 70 , 2 , 4 , PIPE1SPRITESTART ; position 2 bytes, top length, gap, start spriteid
         pipe2Data db 0, 124 , 3 , 3 , PIPE2SPRITESTART ; position 2 bytes, top length, gap, start spriteid
         pipe3Data db 0, 178, 3 , 2 , PIPE3SPRITESTART ; position 2 bytes, top length, gap, start spriteid
@@ -1703,19 +2291,20 @@ No10:
         pipe5Data db 1, 30 ,5 , 2 , PIPE5SPRITESTART ; position 2 bytes, top length, gap, start spriteid
   
         playerScore db 0
-  
+        seed   equ 23672
 
         bird_x     db     BIRDX ; x 
-        bird_y     db     96 ; y 
+        bird_y     db     BIRDY ; y 
+        CollisionDB db 0,0
         birdaniSeqquence db BIRDANI1,BIRDANI2,BIRDANI1,BIRDANI2,BIRDANI1,BIRDANI2,BIRDANI1,BIRDANI2,BIRDANI1,BIRDANI2,BIRDANI1,BIRDANI2;
         birdaniIndex db 2;
         ScrollIndex db 0
 
 
-        bmpStart db "nbstart.bmp" 
+        bmpStart db "nbstart2.bmp" 
         handle db 0
 
-        bmpGame: db "nbgame.bmp"
+        bmpGame: db "nbgame2.bmp"
         handle2 db 0
 
         END START
